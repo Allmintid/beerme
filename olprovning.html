@@ -340,7 +340,7 @@
 <body>
 
 <header>
-  <h1>Ölprovning</h1>
+  <h1 style="cursor:pointer;" onclick="user ? showScreen('s-sessions') : showScreen('s-profile')">🍺 Seb's Ultimate Beer Tester 🍺</h1>
   <div class="header-user" id="header-user">
     <span class="header-user-icon" id="header-user-icon"></span>
     <span class="header-user-name" id="header-user-name"></span>
@@ -382,12 +382,12 @@
   <div class="card">
     <h2>Ny provning</h2>
     <p>Ge sessionen ett namn och lägg till de ölar som ska provas.</p>
-    <label>Provningens namn</label>
+    <label>Ölprovningens namn</label>
     <input type="text" id="session-name-input" placeholder="T.ex. Fredagsprovning" maxlength="40" />
     <label>Välj en kod (bokstäver och siffror)</label>
     <input type="text" id="session-code-input" placeholder="T.ex. FREDAG24" maxlength="20"
       oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')" />
-    <label>Ölar</label>
+    <label>Öl</label>
     <div id="beer-editor"></div>
     <button class="add-beer-btn" onclick="addBeerRow()">+ Lägg till öl</button>
     <button class="btn" onclick="createSession()">Skapa provning</button>
