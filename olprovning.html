@@ -289,24 +289,76 @@
     z-index: 100;
   }
   .toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* Header user row */
+  .header-user {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    margin-top: 8px;
+  }
+  .header-user.visible { display: flex; }
+  .header-user-icon { font-size: 16px; line-height: 1; }
+  .header-user-name { font-size: 12px; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; }
+  .header-change-btn {
+    background: none;
+    border: none;
+    color: var(--gold);
+    font-size: 11px;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 0;
+    opacity: 0.8;
+  }
+  .header-change-btn:hover { opacity: 1; }
+
+  /* Icon picker */
+  .icon-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+  .icon-btn {
+    background: var(--surface2);
+    border: 0.5px solid var(--border2);
+    border-radius: 10px;
+    padding: 10px 0;
+    font-size: 22px;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+    text-align: center;
+    line-height: 1;
+  }
+  .icon-btn:hover { border-color: var(--gold); }
+  .icon-btn.selected { border-color: var(--gold); background: rgba(200,148,42,0.12); }
 </style>
 </head>
 <body>
 
 <header>
   <h1>Ölprovning</h1>
-  <p id="header-sub">Betygsätt &amp; jämför</p>
+  <div class="header-user" id="header-user">
+    <span class="header-user-icon" id="header-user-icon"></span>
+    <span class="header-user-name" id="header-user-name"></span>
+    <button class="header-change-btn" onclick="showScreen('s-profile')">Ändra</button>
+  </div>
 </header>
 
 <!-- PROFIL -->
 <div id="s-profile" class="screen active">
   <div class="card">
-    <h2>Välkommen</h2>
-    <p>Ange ditt namn för att delta. Det sparas på enheten så du slipper skriva det igen.</p>
+    <h2>Din profil</h2>
+    <p>Välj en ikon och ange ditt namn. Sparas på enheten så du slipper göra det igen.</p>
+    <label>Ikon</label>
+    <div class="icon-grid" id="icon-grid"></div>
     <label>Ditt namn</label>
     <input type="text" id="profile-name-input" placeholder="T.ex. Martin" maxlength="20"
       onkeydown="if(event.key==='Enter') saveProfile()" />
-    <button class="btn" onclick="saveProfile()">Fortsätt</button>
+    <button class="btn" onclick="saveProfile()">Spara profil</button>
   </div>
 </div>
 
@@ -314,12 +366,11 @@
 <div id="s-sessions" class="screen">
   <div class="section-header">
     <span class="section-title">Dina provningar</span>
-    <button class="btn-sm" id="change-name-btn" onclick="showScreen('s-profile')">Byt namn</button>
   </div>
   <div id="sessions-list"></div>
   <div class="btn-row">
     <button class="btn" onclick="showScreen('s-create')">+ Ny provning</button>
-    <button class="btn-ghost" onclick="showScreen('s-join-code')">Gå med med kod</button>
+    <button class="btn-ghost" onclick="showScreen('s-join-code')">Anslut med kod</button>
   </div>
 </div>
 
@@ -340,13 +391,13 @@
   </div>
 </div>
 
-<!-- GÅ MED MED KOD -->
+<!-- ANSLUT MED KOD -->
 <div id="s-join-code" class="screen">
   <div style="margin-top:20px;">
     <button class="btn-sm" onclick="showScreen('s-sessions')">&#8592; Tillbaka</button>
   </div>
   <div class="card">
-    <h2>Gå med i provning</h2>
+    <h2>Anslut med kod</h2>
     <p>Klistra in koden du fått av den som skapade provningen.</p>
     <label>Sessionskod</label>
     <input type="text" id="join-code-input" placeholder="Klistra in kod här..."
@@ -410,7 +461,10 @@ const API_KEY = "$2a$10$yUvjjPJ.Mt9.ijiVTl3FEuc10lkv197G.c01gJmnVFHFAQ9yVFoUq";
 const USER_KEY = "op_user";
 const SESSIONS_KEY = "op_sessions";
 
+const ICONS = ["🌙","⚡","🔥","🌊","🌿","⭐","💎","🦊","🐺","🌵","🏔️","🌸","🍄","🦋","🐉","🌲","🦅","🐻","🌺","🍺"];
+
 let user = null;
+let selectedIcon = ICONS[0];
 let sessions = [];
 let currentSession = null;
 let curBeer = 0;
@@ -425,6 +479,7 @@ function init() {
   if (!user || !user.name) {
     showScreen("s-profile");
   } else {
+    updateHeaderUser();
     showScreen("s-sessions");
   }
 }
@@ -439,6 +494,7 @@ function showToast(msg) {
 function showScreen(id) {
   document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
   document.getElementById(id).classList.add("active");
+  if (id === "s-profile") renderIconGrid();
   if (id === "s-sessions") renderSessionsList();
   if (id === "s-create") initBeerEditor();
   if (id === "s-rate") renderBeer();
@@ -454,25 +510,44 @@ function escHtml(s) {
 }
 
 // ---- PROFIL ----
+function renderIconGrid() {
+  selectedIcon = (user && user.icon) ? user.icon : ICONS[0];
+  document.getElementById("icon-grid").innerHTML = ICONS.map(ic => `
+    <button class="icon-btn${ic === selectedIcon ? " selected" : ""}"
+      onclick="selectIcon('${ic}')">${ic}</button>
+  `).join("");
+  if (user) document.getElementById("profile-name-input").value = user.name;
+}
+
+function selectIcon(ic) {
+  selectedIcon = ic;
+  document.querySelectorAll(".icon-btn").forEach(b => {
+    b.classList.toggle("selected", b.textContent === ic);
+  });
+}
+
 function saveProfile() {
   const name = document.getElementById("profile-name-input").value.trim();
   if (!name) { showToast("Ange ett namn!"); return; }
-  user = { name };
+  user = { name, icon: selectedIcon };
   localStorage.setItem(USER_KEY, JSON.stringify(user));
-  updateHeaderName();
+  updateHeaderUser();
   showScreen("s-sessions");
 }
 
-function updateHeaderName() {
-  if (user) document.getElementById("header-sub").textContent = user.name;
+function updateHeaderUser() {
+  if (!user) return;
+  document.getElementById("header-user-icon").textContent = user.icon || "";
+  document.getElementById("header-user-name").textContent = user.name;
+  document.getElementById("header-user").classList.add("visible");
 }
 
 // ---- SESSIONSLISTA ----
 function renderSessionsList() {
-  updateHeaderName();
+  updateHeaderUser();
   const el = document.getElementById("sessions-list");
   if (!sessions.length) {
-    el.innerHTML = `<div class="empty-state">Inga provningar ännu.<br>Skapa en ny eller gå med med en kod.</div>`;
+    el.innerHTML = `<div class="empty-state">Inga provningar ännu.<br>Skapa en ny eller anslut med en kod.</div>`;
     return;
   }
   el.innerHTML = sessions.map((s, i) => {
@@ -625,7 +700,7 @@ async function enterSessionByObj(session) {
     }
   } catch(e) {}
 
-  document.getElementById("header-sub").textContent = session.name;
+  updateHeaderUser();
   showScreen("s-rate");
   startPolling();
 }
