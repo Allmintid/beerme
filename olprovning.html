@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ölprovning</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f0e0b;
+    --surface: #1a1814;
+    --surface2: #222018;
+    --border: rgba(255,255,255,0.08);
+    --border2: rgba(255,255,255,0.14);
+    --gold: #c8942a;
+    --gold-light: #e8b84b;
+    --text: #f0ead8;
+    --muted: #8a8070;
+    --cream: #f0ead8;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 300;
+    min-height: 100vh;
+    padding-bottom: 60px;
+  }
+  header {
+    padding: 28px 20px 20px;
+    border-bottom: 0.5px solid var(--border);
+    text-align: center;
+  }
+  header h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 26px;
+    font-weight: 400;
+    letter-spacing: 0.02em;
+    color: var(--cream);
+  }
+  header p {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 4px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .screen { display: none; padding: 20px; max-width: 480px; margin: 0 auto; }
+  .screen.active { display: block; }
+
+  /* JOIN */
+  .join-card {
+    background: var(--surface);
+    border: 0.5px solid var(--border2);
+    border-radius: 16px;
+    padding: 28px 24px;
+    margin-top: 24px;
+  }
+  .join-card h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 20px;
+    font-weight: 400;
+    margin-bottom: 6px;
+  }
+  .join-card p { font-size: 13px; color: var(--muted); margin-bottom: 24px; }
+  label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); display: block; margin-bottom: 8px; }
+  input[type=text] {
+    width: 100%;
+    background: var(--surface2);
+    border: 0.5px solid var(--border2);
+    border-radius: 10px;
+    padding: 12px 14px;
+    color: var(--cream);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    outline: none;
+    transition: border-color 0.2s;
+    margin-bottom: 16px;
+  }
+  input[type=text]:focus { border-color: var(--gold); }
+  input[type=text]::placeholder { color: var(--muted); }
+  .btn {
+    width: 100%;
+    background: var(--gold);
+    color: #0f0e0b;
+    border: none;
+    border-radius: 10px;
+    padding: 13px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+    letter-spacing: 0.02em;
+  }
+  .btn:active { transform: scale(0.98); }
+  .btn:hover { background: var(--gold-light); }
+  .btn-ghost {
+    background: transparent;
+    border: 0.5px solid var(--border2);
+    color: var(--text);
+    border-radius: 10px;
+    padding: 11px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .btn-ghost:hover { border-color: var(--gold); background: rgba(200,148,42,0.06); }
+
+  /* RATE */
+  .beer-header {
+    margin: 20px 0 16px;
+  }
+  .beer-counter {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+  .beer-name {
+    font-family: 'Playfair Display', serif;
+    font-size: 22px;
+    font-weight: 400;
+    line-height: 1.2;
+    color: var(--cream);
+  }
+  .beer-style-badge {
+    display: inline-block;
+    margin-top: 8px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--gold);
+    border: 0.5px solid rgba(200,148,42,0.4);
+    border-radius: 99px;
+    padding: 3px 10px;
+  }
+  .criteria-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin: 16px 0;
+  }
+  .crit-block {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: 12px;
+    padding: 14px;
+  }
+  .crit-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+  .stars { display: flex; gap: 5px; }
+  .star {
+    font-size: 20px;
+    cursor: pointer;
+    color: rgba(255,255,255,0.12);
+    transition: color 0.1s, transform 0.1s;
+    line-height: 1;
+    user-select: none;
+  }
+  .star.on { color: var(--gold); }
+  .star:active { transform: scale(1.2); }
+  .note-block {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: 12px;
+    padding: 14px;
+    margin-bottom: 16px;
+  }
+  .note-block label { margin-bottom: 8px; }
+  .note-block input { margin-bottom: 0; background: var(--surface2); }
+  .nav-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 20px; }
+  .nav-row .btn-ghost { font-size: 12px; padding: 10px 8px; }
+  .status-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 8px;
+    padding-top: 16px;
+    border-top: 0.5px solid var(--border);
+  }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: #4caf82; display: inline-block; margin-right: 6px; }
+  .status-text { font-size: 12px; color: var(--muted); }
+  .progress-track {
+    height: 2px;
+    background: var(--border);
+    border-radius: 1px;
+    margin: 12px 0 0;
+  }
+  .progress-fill {
+    height: 100%;
+    background: var(--gold);
+    border-radius: 1px;
+    transition: width 0.3s ease;
+  }
+
+  /* RESULTS */
+  .results-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: 20px 0 16px;
+  }
+  .results-header h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 20px;
+    font-weight: 400;
+  }
+  .refresh-btn {
+    background: transparent;
+    border: 0.5px solid var(--border2);
+    color: var(--muted);
+    border-radius: 8px;
+    padding: 7px 12px;
+    font-size: 12px;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .refresh-btn:hover { border-color: var(--gold); color: var(--gold); }
+  .rank-card {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 12px;
+  }
+  .rank-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    border-bottom: 0.5px solid var(--border);
+    transition: background 0.15s;
+  }
+  .rank-row:last-child { border-bottom: none; }
+  .rank-num {
+    font-family: 'Playfair Display', serif;
+    font-size: 16px;
+    color: var(--muted);
+    width: 22px;
+    flex-shrink: 0;
+  }
+  .rank-num.gold { color: var(--gold); }
+  .rank-info { flex: 1; min-width: 0; }
+  .rank-name { font-size: 13px; font-weight: 500; color: var(--cream); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .rank-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .rank-bar-wrap { width: 60px; height: 3px; background: var(--border); border-radius: 2px; overflow: hidden; margin-top: 5px; }
+  .rank-bar { height: 100%; background: var(--gold); border-radius: 2px; }
+  .rank-score { font-size: 15px; font-weight: 500; color: var(--cream); flex-shrink: 0; }
+  .voter-list { padding: 12px 16px; display: flex; flex-wrap: wrap; gap: 6px; }
+  .voter-chip { font-size: 11px; padding: 3px 9px; border-radius: 99px; background: var(--surface2); color: var(--muted); border: 0.5px solid var(--border); }
+  .results-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 4px; }
+
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--surface);
+    border: 0.5px solid var(--gold);
+    color: var(--gold);
+    font-size: 13px;
+    padding: 10px 20px;
+    border-radius: 99px;
+    transition: transform 0.3s ease;
+    pointer-events: none;
+    white-space: nowrap;
+    z-index: 100;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Ölprovning</h1>
+  <p id="header-sub">Betygsätt &amp; jämför</p>
+</header>
+
+<div id="s-join" class="screen active">
+  <div class="join-card">
+    <h2>Välkommen</h2>
+    <p>Ange ditt namn för att delta i provningen. Dina betyg sparas och synkas med sällskapet.</p>
+    <label>Ditt namn</label>
+    <input type="text" id="name-input" placeholder="T.ex. Martin" maxlength="20" />
+    <button class="btn" onclick="joinSession()">Delta i provningen</button>
+  </div>
+</div>
+
+<div id="s-rate" class="screen">
+  <div class="beer-header">
+    <p class="beer-counter" id="beer-counter">Öl 1 av 8</p>
+    <p class="beer-name" id="beer-name"></p>
+    <span class="beer-style-badge" id="beer-style"></span>
+    <div class="progress-track"><div class="progress-fill" id="progress-fill" style="width:12.5%"></div></div>
+  </div>
+  <div class="criteria-grid">
+    <div class="crit-block"><p class="crit-label">Utseende</p><div class="stars" id="stars-0"></div></div>
+    <div class="crit-block"><p class="crit-label">Doft</p><div class="stars" id="stars-1"></div></div>
+    <div class="crit-block"><p class="crit-label">Smak</p><div class="stars" id="stars-2"></div></div>
+    <div class="crit-block"><p class="crit-label">Helhetsintryck</p><div class="stars" id="stars-3"></div></div>
+  </div>
+  <div class="note-block">
+    <label>Anteckning</label>
+    <input type="text" id="note-input" placeholder="Valfri kommentar..." />
+  </div>
+  <div class="nav-row">
+    <button class="btn-ghost" id="btn-prev" onclick="navBeer(-1)">&#8592; Föregående</button>
+    <button class="btn-ghost" id="btn-save" onclick="saveCurrent()">Spara</button>
+    <button class="btn-ghost" id="btn-next" onclick="navBeer(1)">Nästa &#8594;</button>
+  </div>
+  <div class="status-bar">
+    <span class="status-text"><span class="dot"></span><span id="voter-count">0</span> deltagare</span>
+    <button class="btn-ghost" onclick="showScreen('s-results')" style="padding:7px 14px;font-size:12px;">Se ranking</button>
+  </div>
+</div>
+
+<div id="s-results" class="screen">
+  <div class="results-header">
+    <h2>Live-ranking</h2>
+    <button class="refresh-btn" onclick="loadResults()">&#8635; Uppdatera</button>
+  </div>
+  <div class="rank-card" id="results-list">
+    <div class="rank-row"><span style="color:var(--muted);font-size:13px;">Laddar...</span></div>
+  </div>
+  <div id="voter-section" class="rank-card" style="margin-bottom:16px;"></div>
+  <div class="results-btns">
+    <button class="btn-ghost" onclick="showScreen('s-rate')">&#8592; Betygsätt</button>
+    <button class="btn" onclick="saveCurrent()">Spara &amp; synka</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API_KEY = "$2a$10$wEQ2f6ItE6dBffE/nzS3aOC.9pzTvyfmojU.HAv4Tk/Zz8KfueWEa";
+const BIN_ID_KEY = "olprovning_bin_id";
+const BEERS = [
+  { name: "Kosta Glasrikets Lager", style: "Lager" },
+  { name: "Zubr Gradus", style: "Lager" },
+  { name: "Wisby Weisse", style: "Weissbier" },
+  { name: "Kvarnagårdens Småland Haze", style: "Hazy IPA" },
+  { name: "Omnipollo Levon", style: "IPA" },
+  { name: "Wisby Stout", style: "Stout" },
+  { name: "Samhain Pumpkin Porter", style: "Porter" },
+  { name: "Arboga", style: "Stark lager" },
+];
+
+let myName = "";
+let curBeer = 0;
+let myScores = BEERS.map(() => ({ scores: [0,0,0,0], note: "" }));
+let binId = localStorage.getItem(BIN_ID_KEY) || null;
+let allData = {};
+let pollTimer = null;
+
+function showToast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  setTimeout(() => t.classList.remove("show"), 2200);
+}
+
+function showScreen(id) {
+  document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+  if (id === "s-results") loadResults();
+  if (id === "s-rate") renderBeer();
+}
+
+async function getBinData() {
+  if (!binId) return null;
+  const r = await fetch(`https://api.jsonbin.io/v3/b/${binId}/latest`, {
+    headers: { "X-Master-Key": API_KEY }
+  });
+  if (!r.ok) return null;
+  const j = await r.json();
+  return j.record;
+}
+
+async function setBinData(data) {
+  if (!binId) {
+    const r = await fetch("https://api.jsonbin.io/v3/b", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Master-Key": API_KEY,
+        "X-Bin-Name": "olprovning",
+        "X-Bin-Private": "false"
+      },
+      body: JSON.stringify(data)
+    });
+    const j = await r.json();
+    binId = j.metadata.id;
+    localStorage.setItem(BIN_ID_KEY, binId);
+  } else {
+    await fetch(`https://api.jsonbin.io/v3/b/${binId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Master-Key": API_KEY
+      },
+      body: JSON.stringify(data)
+    });
+  }
+}
+
+async function joinSession() {
+  const n = document.getElementById("name-input").value.trim();
+  if (!n) { showToast("Ange ett namn!"); return; }
+  myName = n;
+  document.getElementById("header-sub").textContent = myName + "s provning";
+  try {
+    const data = await getBinData();
+    if (data) {
+      allData = data;
+      if (data[myName]) myScores = data[myName].scores;
+    }
+  } catch(e) {}
+  showScreen("s-rate");
+  startPolling();
+}
+
+function renderBeer() {
+  const b = BEERS[curBeer];
+  document.getElementById("beer-counter").textContent = `Öl ${curBeer+1} av ${BEERS.length}`;
+  document.getElementById("beer-name").textContent = b.name;
+  document.getElementById("beer-style").textContent = b.style;
+  document.getElementById("note-input").value = myScores[curBeer].note;
+  document.getElementById("btn-prev").disabled = curBeer === 0;
+  document.getElementById("btn-next").disabled = curBeer === BEERS.length - 1;
+  document.getElementById("progress-fill").style.width = ((curBeer+1)/BEERS.length*100).toFixed(0) + "%";
+  for (let ci = 0; ci < 4; ci++) renderStars(ci);
+}
+
+function renderStars(ci) {
+  const c = document.getElementById("stars-" + ci);
+  c.innerHTML = "";
+  const val = myScores[curBeer].scores[ci];
+  for (let v = 1; v <= 5; v++) {
+    const s = document.createElement("span");
+    s.className = "star" + (v <= val ? " on" : "");
+    s.textContent = "★";
+    s.onclick = () => { myScores[curBeer].scores[ci] = v; renderStars(ci); };
+    c.appendChild(s);
+  }
+}
+
+async function saveCurrent() {
+  myScores[curBeer].note = document.getElementById("note-input").value;
+  allData[myName] = { scores: myScores, ts: Date.now() };
+  try {
+    await setBinData(allData);
+    showToast("Sparat!");
+  } catch(e) { showToast("Kunde inte spara — kontrollera uppkoppling"); }
+}
+
+function navBeer(dir) {
+  saveCurrent();
+  curBeer = Math.max(0, Math.min(BEERS.length-1, curBeer+dir));
+  renderBeer();
+}
+
+async function loadResults() {
+  const listEl = document.getElementById("results-list");
+  try {
+    const data = await getBinData();
+    if (data) allData = data;
+    const voters = Object.keys(allData);
+    document.getElementById("voter-count").textContent = voters.length;
+
+    const totals = BEERS.map((b, bi) => {
+      let sum = 0, count = 0;
+      voters.forEach(v => {
+        const s = allData[v]?.scores?.[bi];
+        if (s) { const t = s.scores.reduce((a,c) => a+c, 0); if (t > 0) { sum += t; count++; } }
+      });
+      return { name: b.name, style: b.style, avg: count ? sum/count : 0, votes: count };
+    }).sort((a,b) => b.avg - a.avg);
+
+    const maxAvg = totals[0]?.avg || 20;
+    listEl.innerHTML = totals.map((b, i) => `
+      <div class="rank-row">
+        <span class="rank-num ${i===0?'gold':''}">${i===0?"★":(i+1)}</span>
+        <div class="rank-info">
+          <div class="rank-name">${b.name}</div>
+          <div class="rank-sub">${b.style} · ${b.votes} röst${b.votes!==1?"er":""}</div>
+          <div class="rank-bar-wrap"><div class="rank-bar" style="width:${maxAvg>0?Math.round(b.avg/maxAvg*100):0}%"></div></div>
+        </div>
+        <span class="rank-score">${b.avg>0?b.avg.toFixed(1):"—"}</span>
+      </div>
+    `).join("");
+
+    const vs = document.getElementById("voter-section");
+    if (voters.length) {
+      vs.innerHTML = `<div class="voter-list">${voters.map(v=>`<span class="voter-chip">${v}</span>`).join("")}</div>`;
+      vs.style.display = "";
+    } else { vs.style.display = "none"; }
+  } catch(e) {
+    listEl.innerHTML = `<div class="rank-row"><span style="color:var(--muted);font-size:13px;">Kunde inte ladda resultat</span></div>`;
+  }
+}
+
+function startPolling() {
+  if (pollTimer) clearInterval(pollTimer);
+  pollTimer = setInterval(async () => {
+    try {
+      const data = await getBinData();
+      if (data) {
+        allData = data;
+        document.getElementById("voter-count").textContent = Object.keys(data).length;
+      }
+    } catch(e) {}
+  }, 15000);
+}
+
+renderBeer();
+</script>
+</body>
+</html>
