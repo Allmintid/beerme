@@ -341,7 +341,7 @@
 <div class="toast" id="toast"></div>
 
 <script>
-const API_KEY = "$2a$10$wEQ2f6ItE6dBffE/nzS3aOC.9pzTvyfmojU.HAv4Tk/Zz8KfueWEa";
+const API_KEY = "$2a$10$yUvjjPJ.Mt9.ijiVTl3FEuc10lkv197G.c01gJmnVFHFAQ9yVFoUq";
 const BIN_ID_KEY = "olprovning_bin_id";
 const BEERS = [
   { name: "Kosta Glasrikets Lager", style: "Lager" },
@@ -398,10 +398,11 @@ async function setBinData(data) {
       body: JSON.stringify(data)
     });
     const j = await r.json();
+    if (!r.ok) throw new Error(j.message || r.status);
     binId = j.metadata.id;
     localStorage.setItem(BIN_ID_KEY, binId);
   } else {
-    await fetch(`https://api.jsonbin.io/v3/b/${binId}`, {
+    const r = await fetch(`https://api.jsonbin.io/v3/b/${binId}`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -409,6 +410,16 @@ async function setBinData(data) {
       },
       body: JSON.stringify(data)
     });
+    if (!r.ok) {
+      // Bin tillhör gammal nyckel — skapa ny
+      if (r.status === 401 || r.status === 404) {
+        binId = null;
+        localStorage.removeItem(BIN_ID_KEY);
+        return setBinData(data);
+      }
+      const j = await r.json();
+      throw new Error(j.message || r.status);
+    }
   }
 }
 
