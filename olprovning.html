@@ -1089,7 +1089,7 @@ function renderBeer() {
   const thumb = document.getElementById("beer-thumb");
   const sbLink = document.getElementById("sb-link");
   if (b.sbArticle) {
-    thumb.src = `https://product-cdn.systembolaget.se/productimages/${b.sbArticle}/original`;
+    thumb.src = `https://product-cdn.systembolaget.se/productimages/${b.sbArticle}/${b.sbArticle}_400.webp`;
     thumb.style.display = "block";
   } else {
     thumb.style.display = "none";
