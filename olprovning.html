@@ -341,6 +341,35 @@
   }
   .toast.show { transform: translateX(-50%) translateY(0); }
 
+  /* Rank row clickable */
+  .rank-row { cursor: pointer; }
+  .rank-row:hover { background: rgba(200,148,42,0.05); }
+
+  /* Voter detail card */
+  .voter-detail-card {
+    background: var(--surface2);
+    border: 0.5px solid var(--border);
+    border-radius: 12px;
+    padding: 14px;
+    margin-bottom: 10px;
+  }
+  .voter-detail-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .voter-detail-name { font-size: 14px; font-weight: 500; color: var(--cream); }
+  .voter-detail-total { font-size: 13px; color: var(--gold); font-weight: 500; }
+  .voter-detail-criteria {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .voter-crit-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); display: block; margin-bottom: 3px; }
+  .voter-crit-stars { font-size: 15px; letter-spacing: 1px; }
+  .voter-note { font-size: 12px; color: var(--muted); margin-top: 10px; font-style: italic; }
+
   /* Share modal */
   .share-modal {
     display: none;
@@ -542,11 +571,23 @@
   <div id="voter-section" class="rank-card" style="margin-bottom:16px;display:none;"></div>
   <div class="results-btns">
     <button class="btn-ghost" onclick="showScreen('s-rate')">&#8592; Betygsätt</button>
-    <button class="btn" onclick="saveCurrent()">Spara &amp; synka</button>
+    <button class="btn" onclick="saveCurrent()">↑ Spara &amp; synka</button>
   </div>
 </div>
 
 <div class="toast" id="toast"></div>
+
+<!-- BEER DETAIL MODAL -->
+<div class="share-modal" id="beer-modal" onclick="if(event.target===this)closeBeerModal()">
+  <div class="share-sheet" style="max-height:80vh;overflow-y:auto;">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:4px;">
+      <h3 id="beer-modal-name" style="flex:1;padding-right:12px;"></h3>
+      <button onclick="closeBeerModal()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;line-height:1;padding:0;">×</button>
+    </div>
+    <span class="beer-style-badge" id="beer-modal-style" style="margin-bottom:16px;display:inline-block;"></span>
+    <div id="beer-modal-voters"></div>
+  </div>
+</div>
 
 <!-- DELA-MODAL -->
 <div class="share-modal" id="share-modal" onclick="if(event.target===this)closeShareModal()">
@@ -976,6 +1017,62 @@ function closeShareModal() {
   document.getElementById("share-modal").classList.remove("open");
 }
 
+// ---- BEER DETAIL ----
+const CRITERIA = ["Utseende", "Doft", "Smak", "Helhetsintryck"];
+
+function miniStars(val) {
+  return Array.from({ length: 5 }, (_, i) =>
+    `<span style="color:${i < val ? "var(--gold)" : "rgba(255,255,255,0.15)"}"">★</span>`
+  ).join("");
+}
+
+function showBeerDetail(bi) {
+  const beer = currentSession.beers[bi];
+  const voters = Object.keys(allData).filter(k => k !== "_meta");
+
+  const cards = voters
+    .map(v => {
+      const s = allData[v]?.scores?.[bi];
+      if (!s) return null;
+      const total = s.scores.reduce((a, c) => a + c, 0);
+      if (total === 0) return null;
+      return { name: v, scores: s.scores, note: s.note || "", total };
+    })
+    .filter(Boolean)
+    .sort((a, b) => b.total - a.total);
+
+  document.getElementById("beer-modal-name").textContent = beer.name;
+  const styleBadge = document.getElementById("beer-modal-style");
+  styleBadge.textContent = beer.style || "";
+  styleBadge.style.display = beer.style ? "inline-block" : "none";
+
+  document.getElementById("beer-modal-voters").innerHTML = cards.length
+    ? cards.map(v => `
+        <div class="voter-detail-card">
+          <div class="voter-detail-header">
+            <span class="voter-detail-name">${escHtml(v.name)}</span>
+            <span class="voter-detail-total">${v.total} / 20</span>
+          </div>
+          <div class="voter-detail-criteria">
+            ${CRITERIA.map((c, ci) => `
+              <div>
+                <span class="voter-crit-label">${c}</span>
+                <span class="voter-crit-stars">${miniStars(v.scores[ci])}</span>
+              </div>
+            `).join("")}
+          </div>
+          ${v.note ? `<div class="voter-note">"${escHtml(v.note)}"</div>` : ""}
+        </div>
+      `).join("")
+    : `<p style="color:var(--muted);font-size:13px;text-align:center;padding:20px 0;">Inga betyg ännu</p>`;
+
+  document.getElementById("beer-modal").classList.add("open");
+}
+
+function closeBeerModal() {
+  document.getElementById("beer-modal").classList.remove("open");
+}
+
 // ---- BETYGSÄTT ----
 function renderBeer() {
   if (!currentSession) return;
@@ -1062,12 +1159,12 @@ async function loadResults() {
         const s = allData[v]?.scores?.[bi];
         if (s) { const t = s.scores.reduce((a, c) => a + c, 0); if (t > 0) { sum += t; count++; } }
       });
-      return { name: b.name, style: b.style, avg: count ? sum / count : 0, votes: count };
+      return { name: b.name, style: b.style, avg: count ? sum / count : 0, votes: count, bi };
     }).sort((a, b) => b.avg - a.avg);
 
     const maxAvg = totals[0]?.avg || 20;
     listEl.innerHTML = totals.map((b, i) => `
-      <div class="rank-row">
+      <div class="rank-row" onclick="showBeerDetail(${b.bi})">
         <span class="rank-num ${i === 0 ? "gold" : ""}">${i === 0 ? "★" : (i + 1)}</span>
         <div class="rank-info">
           <div class="rank-name">${escHtml(b.name)}</div>
