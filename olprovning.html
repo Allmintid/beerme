@@ -341,6 +341,32 @@
   }
   .toast.show { transform: translateX(-50%) translateY(0); }
 
+  /* Share modal */
+  .share-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 200;
+    align-items: flex-end;
+    justify-content: center;
+  }
+  .share-modal.open { display: flex; }
+  .share-sheet {
+    background: var(--surface);
+    border-radius: 20px 20px 0 0;
+    padding: 28px 24px 40px;
+    width: 100%;
+    max-width: 480px;
+  }
+  .share-sheet h3 {
+    font-family: 'Playfair Display', serif;
+    font-size: 18px;
+    font-weight: 400;
+    margin-bottom: 4px;
+  }
+  .share-sheet p { font-size: 12px; color: var(--muted); margin-bottom: 20px; }
+
   /* Header user row */
   .header-user {
     display: none;
@@ -494,8 +520,9 @@
   <div class="status-bar">
     <span class="status-text"><span class="dot"></span><span id="voter-count">0</span> deltagare</span>
     <div style="display:flex;gap:8px;">
-      <button class="btn-sm" onclick="showScreen('s-sessions')">Sessioner</button>
-      <button class="btn-sm" onclick="showScreen('s-results')">Se ranking</button>
+      <button class="btn-sm" onclick="showScreen('s-sessions')">← Sessioner</button>
+      <button class="btn-sm" onclick="showShareModal()">Dela</button>
+      <button class="btn-sm" onclick="showScreen('s-results')">Ranking</button>
     </div>
   </div>
 </div>
@@ -504,7 +531,10 @@
 <div id="s-results" class="screen">
   <div class="results-header">
     <h2>Live-ranking</h2>
-    <button class="refresh-btn" onclick="loadResults()">&#8635; Uppdatera</button>
+    <div style="display:flex;gap:8px;">
+      <button class="refresh-btn" onclick="showShareModal()">Dela</button>
+      <button class="refresh-btn" onclick="loadResults()">&#8635; Uppdatera</button>
+    </div>
   </div>
   <div class="rank-card" id="results-list">
     <div class="rank-row"><span style="color:var(--muted);font-size:13px;">Laddar...</span></div>
@@ -517,6 +547,22 @@
 </div>
 
 <div class="toast" id="toast"></div>
+
+<!-- DELA-MODAL -->
+<div class="share-modal" id="share-modal" onclick="if(event.target===this)closeShareModal()">
+  <div class="share-sheet">
+    <h3 id="share-session-name"></h3>
+    <p>Dela med ditt sällskap</p>
+    <div class="code-label">Sessionskod</div>
+    <div class="code-box" onclick="copyText(currentSession&&currentSession.code||'', 'Kod kopierad!')">
+      <div class="code-value" style="font-size:26px;letter-spacing:0.15em;" id="share-code-display">—</div>
+    </div>
+    <button class="btn-ghost" onclick="copyText(lastShareUrl,'Länk kopierad!')" style="margin-bottom:10px;">
+      Kopiera länk
+    </button>
+    <button class="btn-ghost" onclick="closeShareModal()">Stäng</button>
+  </div>
+</div>
 
 <script>
 const API_KEY = "$2a$10$yUvjjPJ.Mt9.ijiVTl3FEuc10lkv197G.c01gJmnVFHFAQ9yVFoUq";
@@ -554,8 +600,10 @@ function handleUrlParams() {
   const params = new URLSearchParams(window.location.search);
   const r = params.get("r");
   const c = params.get("c");
+  const binId = params.get("binId");
   if (r) localStorage.setItem(REGISTRY_KEY, r);
   if (c) pendingCode = c.toUpperCase();
+  else if (binId) pendingCode = "__BINID__" + binId;
 }
 
 function showToast(msg) {
@@ -630,7 +678,7 @@ function renderSessionsList() {
       <div class="session-card" onclick="enterSession(${i})">
         <div class="session-info">
           <div class="session-name">${escHtml(s.name)}</div>
-          <div class="session-meta">${s.beers.length} ölar · ${date}</div>
+          <div class="session-meta">${s.beers.length} öl · ${date}</div>
         </div>
         <span class="session-arrow">›</span>
         <button class="session-delete" onclick="deleteSession(event,${i})" title="Ta bort">×</button>
@@ -693,10 +741,13 @@ async function lookupCode(code) {
 }
 
 async function handlePendingCode() {
-  const code = pendingCode;
+  const raw = pendingCode;
   pendingCode = null;
-  const binId = await lookupCode(code);
-  if (!binId) { showToast(`Hittade ingen provning med koden ${code}`); showScreen("s-sessions"); return; }
+
+  // Support direct binId links (?binId=...)
+  let binId = raw.startsWith("__BINID__") ? raw.slice(9) : await lookupCode(raw);
+  if (!binId) { showToast(`Hittade ingen provning med koden ${raw}`); showScreen("s-sessions"); return; }
+
   try {
     const r = await fetch(`https://api.jsonbin.io/v3/b/${binId}/latest`, { headers: { "X-Master-Key": API_KEY } });
     if (!r.ok) { showScreen("s-sessions"); return; }
@@ -827,27 +878,11 @@ async function createSession() {
     const session = { id: j.metadata.id, name: sessionName, binId: j.metadata.id, beers, code, createdAt: Date.now() };
     sessions.unshift(session);
     localStorage.setItem(SESSIONS_KEY, JSON.stringify(sessions));
-    showShareCode(session);
+    enterSessionByObj(session);
   } catch(e) {
     console.error("createSession error:", e);
     showToast(`Kunde inte skapa provning: ${e.message}`);
   }
-}
-
-function showShareCode(session) {
-  document.querySelector("#s-create .card").innerHTML = `
-    <h2>Provning skapad!</h2>
-    <p>Dela koden eller länken med ditt sällskap.</p>
-    <div class="code-label" style="margin-top:20px;">Sessionskod</div>
-    <div class="code-box" onclick="copyText('${escHtml(session.code)}', 'Kod kopierad!')">
-      <div class="code-value" style="font-size:26px;letter-spacing:0.15em;">${escHtml(session.code)}</div>
-    </div>
-    <button class="btn-ghost" onclick="copyText(lastShareUrl, 'Länk kopierad!')" style="margin-bottom:10px;">
-      Kopiera länk
-    </button>
-    <button class="btn" onclick="enterSession(0)" style="margin-bottom:10px;">Starta provningen ›</button>
-    <button class="btn-ghost" onclick="showScreen('s-sessions')">Tillbaka till listan</button>
-  `;
 }
 
 function copyText(text, msg) {
@@ -907,6 +942,13 @@ async function enterSessionByObj(session) {
   allData = {};
   curBeer = 0;
 
+  // Build share URL for this session
+  const regId = localStorage.getItem(REGISTRY_KEY);
+  const base = window.location.href.split("?")[0];
+  lastShareUrl = (session.code && regId)
+    ? `${base}?r=${regId}&c=${session.code}`
+    : `${base}?binId=${session.binId}`;
+
   try {
     const r = await fetch(`https://api.jsonbin.io/v3/b/${session.binId}/latest`, {
       headers: { "X-Master-Key": API_KEY }
@@ -921,6 +963,17 @@ async function enterSessionByObj(session) {
   updateHeaderUser();
   showScreen("s-rate");
   startPolling();
+}
+
+function showShareModal() {
+  if (!currentSession) return;
+  document.getElementById("share-session-name").textContent = currentSession.name;
+  document.getElementById("share-code-display").textContent = currentSession.code || "—";
+  document.getElementById("share-modal").classList.add("open");
+}
+
+function closeShareModal() {
+  document.getElementById("share-modal").classList.remove("open");
 }
 
 // ---- BETYGSÄTT ----
