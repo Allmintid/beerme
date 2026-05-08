@@ -769,7 +769,7 @@ function renderBeerEditor() {
 }
 
 function addBeerRow() {
-  draftBeers.push({ name: "", style: "" });
+  draftBeers.push({ name: "", style: "", sbUrl: "" });
   renderBeerEditor();
 }
 
@@ -809,19 +809,28 @@ async function createSession() {
     const j = await r.json();
     if (!r.ok) throw new Error(j.message || r.status);
 
-    const ok = await registerCode(code, j.metadata.id);
-    if (!ok) { showToast(`Koden "${code}" är redan tagen — välj en annan`); return; }
+    // Register the short code — non-fatal if it fails
+    let regId = null;
+    try {
+      const ok = await registerCode(code, j.metadata.id);
+      if (!ok) { showToast(`Koden "${code}" är redan tagen — välj en annan`); return; }
+      regId = localStorage.getItem(REGISTRY_KEY);
+    } catch(regErr) {
+      console.warn("Registry failed, continuing without short code:", regErr);
+    }
 
-    const regId = localStorage.getItem(REGISTRY_KEY);
     const base = window.location.href.split("?")[0];
-    lastShareUrl = `${base}?r=${regId}&c=${code}`;
+    lastShareUrl = regId
+      ? `${base}?r=${regId}&c=${code}`
+      : `${base}?binId=${j.metadata.id}`;
 
     const session = { id: j.metadata.id, name: sessionName, binId: j.metadata.id, beers, code, createdAt: Date.now() };
     sessions.unshift(session);
     localStorage.setItem(SESSIONS_KEY, JSON.stringify(sessions));
     showShareCode(session);
   } catch(e) {
-    showToast("Kunde inte skapa provning — kontrollera uppkoppling");
+    console.error("createSession error:", e);
+    showToast(`Kunde inte skapa provning: ${e.message}`);
   }
 }
 
@@ -856,15 +865,18 @@ async function joinWithCode() {
   if (raw.includes("?")) {
     try {
       const params = new URLSearchParams(raw.includes("http") ? new URL(raw).search : raw.slice(raw.indexOf("?")));
-      const r = params.get("r"), c = params.get("c");
+      const r = params.get("r"), c = params.get("c"), binIdParam = params.get("binId");
       if (r) localStorage.setItem(REGISTRY_KEY, r);
-      if (c) raw = c;
+      if (binIdParam) { raw = binIdParam; }
+      else if (c) { raw = c; }
     } catch(e) {}
   }
 
   const code = raw.toUpperCase();
   try {
-    const binId = await lookupCode(code);
+    let binId = await lookupCode(code);
+    // Fall back to treating input as a raw bin ID if registry lookup fails
+    if (!binId && /^[0-9a-f]{20,}$/i.test(raw)) binId = raw;
     if (!binId) { showToast(`Hittade ingen provning med koden ${code}`); return; }
 
     const r = await fetch(`https://api.jsonbin.io/v3/b/${binId}/latest`, {
