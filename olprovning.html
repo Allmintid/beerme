@@ -105,10 +105,11 @@
     font-family: 'DM Sans', sans-serif;
     font-size: 13px;
     cursor: pointer;
-    transition: border-color 0.2s, background 0.2s;
+    transition: border-color 0.2s, background 0.2s, transform 0.1s;
     width: 100%;
   }
   .btn-ghost:hover { border-color: var(--gold); background: rgba(200,148,42,0.06); }
+  .btn-ghost:active { transform: scale(0.97); }
   .btn-sm {
     background: transparent;
     border: 0.5px solid var(--border2);
@@ -118,9 +119,10 @@
     font-family: 'DM Sans', sans-serif;
     font-size: 12px;
     cursor: pointer;
-    transition: border-color 0.2s;
+    transition: border-color 0.2s, transform 0.1s;
   }
   .btn-sm:hover { border-color: var(--gold); color: var(--gold); }
+  .btn-sm:active { transform: scale(0.96); }
   .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 16px; }
 
   /* Sessions list */
@@ -145,9 +147,10 @@
     align-items: center;
     gap: 12px;
     cursor: pointer;
-    transition: border-color 0.2s, background 0.15s;
+    transition: border-color 0.2s, background 0.15s, transform 0.1s;
   }
   .session-card:hover { border-color: var(--gold); background: rgba(200,148,42,0.04); }
+  .session-card:active { transform: scale(0.98); }
   .session-info { flex: 1; min-width: 0; }
   .session-name { font-size: 15px; font-weight: 500; color: var(--cream); }
   .session-meta { font-size: 11px; color: var(--muted); margin-top: 3px; }
@@ -216,9 +219,10 @@
     cursor: pointer;
     font-size: 18px;
     flex-shrink: 0;
-    transition: color 0.2s, border-color 0.2s;
+    transition: color 0.2s, border-color 0.2s, transform 0.1s;
   }
   .remove-beer-btn:hover { color: #e05050; border-color: #e05050; }
+  .remove-beer-btn:active { transform: scale(0.9); }
 
   /* Beer image in rate screen */
   .beer-header-row {
@@ -261,9 +265,10 @@
     font-family: 'DM Sans', sans-serif;
     margin-top: 4px;
     margin-bottom: 16px;
-    transition: border-color 0.2s, color 0.2s;
+    transition: border-color 0.2s, color 0.2s, transform 0.1s;
   }
   .add-beer-btn:hover { border-color: var(--gold); color: var(--gold); }
+  .add-beer-btn:active { transform: scale(0.98); }
 
   /* Code display */
   .code-box {
@@ -274,9 +279,10 @@
     text-align: center;
     margin: 12px 0 20px;
     cursor: pointer;
-    transition: border-color 0.2s;
+    transition: border-color 0.2s, transform 0.1s;
   }
   .code-box:hover { border-color: var(--gold); }
+  .code-box:active { transform: scale(0.98); }
   .code-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin-bottom: 8px; }
   .code-value { font-size: 12px; color: var(--gold); word-break: break-all; font-family: monospace; letter-spacing: 0.03em; }
 
@@ -285,13 +291,19 @@
   .beer-counter { font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin-bottom: 4px; }
   .beer-name { font-family: 'Playfair Display', serif; font-size: 22px; font-weight: 400; line-height: 1.2; color: var(--cream); }
   .beer-style-badge { display: inline-block; margin-top: 8px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--gold); border: 0.5px solid rgba(200,148,42,0.4); border-radius: 99px; padding: 3px 10px; }
-  .criteria-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 16px 0; }
-  .crit-block { background: var(--surface); border: 0.5px solid var(--border); border-radius: 12px; padding: 14px; }
-  .crit-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 10px; }
+  .criteria-grid { display: flex; flex-direction: column; gap: 10px; margin: 16px 0; }
+  .crit-block { background: var(--surface); border: 0.5px solid var(--border); border-radius: 12px; padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; }
+  .crit-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
   .stars { display: flex; gap: 5px; }
-  .star { font-size: 20px; cursor: pointer; color: rgba(255,255,255,0.12); transition: color 0.1s, transform 0.1s; line-height: 1; user-select: none; }
+  @keyframes starPop {
+    0%   { transform: scale(1); filter: drop-shadow(0 0 0px var(--gold)); }
+    40%  { transform: scale(1.55); filter: drop-shadow(0 0 6px var(--gold)); }
+    70%  { transform: scale(0.88); filter: drop-shadow(0 0 3px var(--gold)); }
+    100% { transform: scale(1); filter: drop-shadow(0 0 0px var(--gold)); }
+  }
+  .star { font-size: 22px; cursor: pointer; color: rgba(255,255,255,0.12); transition: color 0.1s; line-height: 1; user-select: none; }
   .star.on { color: var(--gold); }
-  .star:active { transform: scale(1.2); }
+  .star.pop { animation: starPop 0.35s cubic-bezier(0.34,1.56,0.64,1) forwards; }
   .note-block { background: var(--surface); border: 0.5px solid var(--border); border-radius: 12px; padding: 14px; margin-bottom: 16px; }
   .note-block label { margin-bottom: 8px; }
   .note-block input { margin-bottom: 0; background: var(--surface2); }
@@ -306,10 +318,11 @@
   /* RESULTS */
   .results-header { display: flex; align-items: center; justify-content: space-between; margin: 20px 0 16px; }
   .results-header h2 { font-family: 'Playfair Display', serif; font-size: 20px; font-weight: 400; }
-  .refresh-btn { background: transparent; border: 0.5px solid var(--border2); color: var(--muted); border-radius: 8px; padding: 7px 12px; font-size: 12px; cursor: pointer; font-family: 'DM Sans', sans-serif; }
+  .refresh-btn { background: transparent; border: 0.5px solid var(--border2); color: var(--muted); border-radius: 8px; padding: 7px 12px; font-size: 12px; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: border-color 0.2s, color 0.2s, transform 0.1s; }
   .refresh-btn:hover { border-color: var(--gold); color: var(--gold); }
+  .refresh-btn:active { transform: scale(0.96); }
   .rank-card { background: var(--surface); border: 0.5px solid var(--border); border-radius: 12px; overflow: hidden; margin-bottom: 12px; }
-  .rank-row { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-bottom: 0.5px solid var(--border); transition: background 0.15s; }
+  .rank-row { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-bottom: 0.5px solid var(--border); transition: background 0.15s, transform 0.1s; }
   .rank-row:last-child { border-bottom: none; }
   .rank-num { font-family: 'Playfair Display', serif; font-size: 16px; color: var(--muted); width: 22px; flex-shrink: 0; }
   .rank-num.gold { color: var(--gold); }
@@ -344,6 +357,7 @@
   /* Rank row clickable */
   .rank-row { cursor: pointer; }
   .rank-row:hover { background: rgba(200,148,42,0.05); }
+  .rank-row:active { transform: scale(0.99); }
 
   /* Voter detail card */
   .voter-detail-card {
@@ -435,12 +449,70 @@
     padding: 10px 0;
     font-size: 22px;
     cursor: pointer;
-    transition: border-color 0.15s, background 0.15s;
+    transition: border-color 0.15s, background 0.15s, transform 0.1s;
     text-align: center;
     line-height: 1;
   }
   .icon-btn:hover { border-color: var(--gold); }
+  .icon-btn:active { transform: scale(0.92); }
   .icon-btn.selected { border-color: var(--gold); background: rgba(200,148,42,0.12); }
+
+  /* Decorations */
+  .deco-dots {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    margin: 14px 0 20px;
+    opacity: 0.3;
+  }
+  .deco-dot {
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background: var(--gold);
+  }
+  .deco-rule {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 2px 0 16px;
+    color: rgba(200,148,42,0.25);
+    font-size: 9px;
+    letter-spacing: 0.3em;
+  }
+  .deco-rule::before, .deco-rule::after {
+    content: '';
+    flex: 1;
+    height: 0.5px;
+    background: rgba(200,148,42,0.18);
+  }
+  @keyframes bubbleFloat {
+    0%   { transform: translateY(0); opacity: 0; }
+    15%  { opacity: 1; }
+    85%  { opacity: 0.6; }
+    100% { transform: translateY(-56px); opacity: 0; }
+  }
+  .deco-bubbles {
+    position: absolute;
+    bottom: 80px;
+    right: 24px;
+    pointer-events: none;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items: center;
+  }
+  .deco-bubbles span {
+    display: block;
+    border-radius: 50%;
+    border: 0.5px solid rgba(200,148,42,0.4);
+    animation: bubbleFloat 5s ease-in infinite;
+    opacity: 0;
+  }
+  .deco-bubbles span:nth-child(1) { width: 7px; height: 7px; animation-delay: 0s; animation-duration: 5.2s; }
+  .deco-bubbles span:nth-child(2) { width: 5px; height: 5px; animation-delay: 1.8s; animation-duration: 4.6s; }
+  .deco-bubbles span:nth-child(3) { width: 4px; height: 4px; animation-delay: 3.4s; animation-duration: 5.8s; }
+  #s-sessions { position: relative; }
 </style>
 </head>
 <body>
@@ -458,6 +530,7 @@
 <div id="s-profile" class="screen active">
   <div class="card">
     <h2>Din profil</h2>
+    <div class="deco-dots" aria-hidden="true"><span class="deco-dot"></span><span class="deco-dot"></span><span class="deco-dot"></span></div>
     <p>Välj en ikon och ange ditt namn. Sparas på enheten så du slipper göra det igen.</p>
     <label>Ikon</label>
     <div class="icon-grid" id="icon-grid"></div>
@@ -473,11 +546,13 @@
   <div class="section-header">
     <span class="section-title">Dina provningar</span>
   </div>
+  <div class="deco-rule" aria-hidden="true">✦</div>
   <div id="sessions-list"></div>
   <div class="btn-row">
     <button class="btn" onclick="showScreen('s-create')">+ Ny provning</button>
     <button class="btn-ghost" onclick="showScreen('s-join-code')">Anslut med kod</button>
   </div>
+  <div class="deco-bubbles" aria-hidden="true"><span></span><span></span><span></span></div>
 </div>
 
 <!-- SKAPA SESSION -->
@@ -1111,7 +1186,7 @@ function renderBeer() {
   for (let ci = 0; ci < 4; ci++) renderStars(ci);
 }
 
-function renderStars(ci) {
+function renderStars(ci, clickedVal) {
   const c = document.getElementById("stars-" + ci);
   c.innerHTML = "";
   const val = myScores[curBeer].scores[ci];
@@ -1119,7 +1194,11 @@ function renderStars(ci) {
     const s = document.createElement("span");
     s.className = "star" + (v <= val ? " on" : "");
     s.textContent = "★";
-    s.onclick = () => { myScores[curBeer].scores[ci] = v; renderStars(ci); };
+    if (clickedVal != null && v <= clickedVal) {
+      const delay = (v - 1) * 45;
+      setTimeout(() => { s.classList.add("pop"); s.addEventListener("animationend", () => s.classList.remove("pop"), { once: true }); }, delay);
+    }
+    s.onclick = () => { myScores[curBeer].scores[ci] = v; renderStars(ci, v); };
     c.appendChild(s);
   }
 }
