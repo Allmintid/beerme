@@ -175,13 +175,34 @@
 
   /* Beer editor */
   .beer-row {
+    background: var(--surface2);
+    border: 0.5px solid var(--border2);
+    border-radius: 10px;
+    padding: 10px;
+    margin-bottom: 8px;
+  }
+  .beer-row-top {
     display: flex;
     gap: 8px;
-    margin-bottom: 8px;
+    align-items: center;
+    margin-bottom: 6px;
+  }
+  .beer-row-top input { margin-bottom: 0; flex: 1; background: var(--surface); }
+  .beer-row-top .style-input { flex: 0 0 90px; font-size: 13px; background: var(--surface); }
+  .beer-row-url {
+    display: flex;
+    gap: 8px;
     align-items: center;
   }
-  .beer-row input { margin-bottom: 0; flex: 1; }
-  .beer-row .style-input { flex: 0 0 90px; font-size: 13px; }
+  .beer-row-url input {
+    margin-bottom: 0;
+    flex: 1;
+    font-size: 12px;
+    padding: 8px 12px;
+    background: var(--surface);
+    color: var(--muted);
+  }
+  .beer-row-url input:focus { color: var(--cream); }
   .remove-beer-btn {
     background: none;
     border: 0.5px solid var(--border2);
@@ -198,6 +219,36 @@
     transition: color 0.2s, border-color 0.2s;
   }
   .remove-beer-btn:hover { color: #e05050; border-color: #e05050; }
+
+  /* Beer image in rate screen */
+  .beer-header-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+  }
+  .beer-header-text { flex: 1; min-width: 0; }
+  .beer-thumb {
+    width: 72px;
+    height: 72px;
+    object-fit: contain;
+    border-radius: 8px;
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    flex-shrink: 0;
+    display: none;
+  }
+  .sb-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 6px;
+    font-size: 11px;
+    color: var(--muted);
+    text-decoration: none;
+    letter-spacing: 0.04em;
+    transition: color 0.2s;
+  }
+  .sb-link:hover { color: var(--gold); }
   .add-beer-btn {
     background: transparent;
     border: 0.5px dashed var(--border2);
@@ -413,8 +464,16 @@
 <div id="s-rate" class="screen">
   <div class="beer-header">
     <p class="beer-counter" id="beer-counter">Öl 1 av 8</p>
-    <p class="beer-name" id="beer-name"></p>
-    <span class="beer-style-badge" id="beer-style"></span>
+    <div class="beer-header-row">
+      <div class="beer-header-text">
+        <p class="beer-name" id="beer-name"></p>
+        <span class="beer-style-badge" id="beer-style"></span>
+        <a class="sb-link" id="sb-link" href="#" target="_blank" rel="noopener" style="display:none;">
+          ↗ systembolaget.se
+        </a>
+      </div>
+      <img class="beer-thumb" id="beer-thumb" alt="" onerror="this.style.display='none'" />
+    </div>
     <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
   </div>
   <div class="criteria-grid">
@@ -475,7 +534,7 @@ let curBeer = 0;
 let myScores = [];
 let allData = {};
 let pollTimer = null;
-let draftBeers = [{ name: "", style: "" }];
+let draftBeers = [{ name: "", style: "", sbUrl: "" }];
 let pendingCode = null;
 let lastShareUrl = "";
 
@@ -654,22 +713,57 @@ async function handlePendingCode() {
 
 // ---- SKAPA SESSION ----
 function initBeerEditor() {
-  draftBeers = [{ name: "", style: "" }];
+  draftBeers = [{ name: "", style: "", sbUrl: "" }];
   document.getElementById("session-name-input").value = "";
   document.getElementById("session-code-input").value = "";
   renderBeerEditor();
 }
 
+function extractSbInfo(url) {
+  try {
+    const slug = url.split("/").filter(Boolean).pop();
+    const parts = slug.split("-");
+    let articleNr = null;
+    let nameParts = [...parts];
+    for (let i = parts.length - 1; i >= 0; i--) {
+      if (/^\d+$/.test(parts[i])) {
+        articleNr = parts[i];
+        nameParts = parts.slice(0, i);
+        break;
+      }
+    }
+    const name = nameParts.map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(" ");
+    return { articleNr, name };
+  } catch(e) { return null; }
+}
+
+function onSbUrlInput(i, val) {
+  draftBeers[i].sbUrl = val;
+  if (val.includes("systembolaget.se")) {
+    const info = extractSbInfo(val);
+    if (info && info.name && !draftBeers[i].name) {
+      draftBeers[i].name = info.name;
+      renderBeerEditor();
+    }
+  }
+}
+
 function renderBeerEditor() {
   document.getElementById("beer-editor").innerHTML = draftBeers.map((b, i) => `
     <div class="beer-row">
-      <input type="text" placeholder="Ölnamn" value="${escHtml(b.name)}"
-        oninput="draftBeers[${i}].name=this.value" />
-      <input type="text" class="style-input" placeholder="Stil" value="${escHtml(b.style)}"
-        oninput="draftBeers[${i}].style=this.value" />
-      ${draftBeers.length > 1
-        ? `<button class="remove-beer-btn" onclick="removeBeerRow(${i})">×</button>`
-        : `<div style="width:38px;flex-shrink:0;"></div>`}
+      <div class="beer-row-top">
+        <input type="text" placeholder="Ölnamn" value="${escHtml(b.name)}"
+          oninput="draftBeers[${i}].name=this.value" />
+        <input type="text" class="style-input" placeholder="Stil" value="${escHtml(b.style)}"
+          oninput="draftBeers[${i}].style=this.value" />
+        ${draftBeers.length > 1
+          ? `<button class="remove-beer-btn" onclick="removeBeerRow(${i})">×</button>`
+          : `<div style="width:38px;flex-shrink:0;"></div>`}
+      </div>
+      <div class="beer-row-url">
+        <input type="url" placeholder="systembolaget.se-länk (valfritt)" value="${escHtml(b.sbUrl)}"
+          oninput="onSbUrlInput(${i}, this.value)" />
+      </div>
     </div>
   `).join("");
 }
@@ -687,10 +781,15 @@ function removeBeerRow(i) {
 async function createSession() {
   const sessionName = document.getElementById("session-name-input").value.trim();
   const code = document.getElementById("session-code-input").value.trim().toUpperCase();
-  const beers = draftBeers.filter(b => b.name.trim()).map(b => ({
-    name: b.name.trim(),
-    style: b.style.trim()
-  }));
+  const beers = draftBeers.filter(b => b.name.trim()).map(b => {
+    const beer = { name: b.name.trim(), style: b.style.trim() };
+    if (b.sbUrl && b.sbUrl.includes("systembolaget.se")) {
+      const info = extractSbInfo(b.sbUrl);
+      beer.sbUrl = b.sbUrl;
+      if (info && info.articleNr) beer.sbArticle = info.articleNr;
+    }
+    return beer;
+  });
   if (!sessionName) { showToast("Ange ett namn för provningen"); return; }
   if (code.length < 3) { showToast("Koden måste vara minst 3 tecken"); return; }
   if (!beers.length) { showToast("Lägg till minst en öl"); return; }
@@ -824,6 +923,22 @@ function renderBeer() {
   document.getElementById("btn-next").disabled = curBeer === currentSession.beers.length - 1;
   document.getElementById("progress-fill").style.width =
     ((curBeer + 1) / currentSession.beers.length * 100).toFixed(0) + "%";
+
+  const thumb = document.getElementById("beer-thumb");
+  const sbLink = document.getElementById("sb-link");
+  if (b.sbArticle) {
+    thumb.src = `https://product-cdn.systembolaget.se/productimages/${b.sbArticle}/original`;
+    thumb.style.display = "block";
+  } else {
+    thumb.style.display = "none";
+  }
+  if (b.sbUrl) {
+    sbLink.href = b.sbUrl;
+    sbLink.style.display = "inline-flex";
+  } else {
+    sbLink.style.display = "none";
+  }
+
   for (let ci = 0; ci < 4; ci++) renderStars(ci);
 }
 
