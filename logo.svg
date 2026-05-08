@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
+  <!-- Background -->
+  <circle cx="60" cy="60" r="56" fill="#0f0e0b"/>
+  <!-- Outer ring -->
+  <circle cx="60" cy="60" r="55" fill="none" stroke="#c8942a" stroke-width="1"/>
+  <!-- Inner decorative ring -->
+  <circle cx="60" cy="60" r="49" fill="none" stroke="rgba(200,148,42,0.22)" stroke-width="0.5"/>
+
+  <!-- Glass body (trapezoid, wider at top) -->
+  <path d="M 45 92 L 38 35 L 82 35 L 75 92 Z"
+    fill="rgba(200,148,42,0.07)"
+    stroke="#c8942a"
+    stroke-width="1.5"
+    stroke-linejoin="round"/>
+
+  <!-- Handle -->
+  <path d="M 75 51 Q 94 51 94 63 Q 94 75 75 75"
+    fill="none"
+    stroke="#c8942a"
+    stroke-width="1.5"
+    stroke-linecap="round"/>
+
+  <!-- Foam (3 bumps above glass rim) -->
+  <path d="M 40 35 Q 47 24 54 35 Q 61 24 68 35 Q 75 24 82 35"
+    fill="none"
+    stroke="#c8942a"
+    stroke-width="1.5"
+    stroke-linecap="round"/>
+</svg>

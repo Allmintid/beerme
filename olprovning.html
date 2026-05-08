@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Ölprovning</title>
+<title>Seb's Ultimate Beer Tester</title>
+<link rel="icon" type="image/svg+xml" href="logo.svg">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -580,7 +581,11 @@
 <body>
 
 <header>
-  <h1 style="cursor:pointer;" onclick="user ? showScreen('s-sessions') : showScreen('s-profile')">🍺 Seb's Ultimate Beer Tester 🍺</h1>
+  <h1 style="cursor:pointer;display:flex;align-items:center;justify-content:center;gap:12px;" onclick="user ? showScreen('s-sessions') : showScreen('s-profile')">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="28" height="28" style="flex-shrink:0;"><circle cx="60" cy="60" r="56" fill="#0f0e0b"/><circle cx="60" cy="60" r="55" fill="none" stroke="#c8942a" stroke-width="1"/><circle cx="60" cy="60" r="49" fill="none" stroke="rgba(200,148,42,0.22)" stroke-width="0.5"/><path d="M 45 92 L 38 35 L 82 35 L 75 92 Z" fill="rgba(200,148,42,0.07)" stroke="#c8942a" stroke-width="1.5" stroke-linejoin="round"/><path d="M 75 51 Q 94 51 94 63 Q 94 75 75 75" fill="none" stroke="#c8942a" stroke-width="1.5" stroke-linecap="round"/><path d="M 40 35 Q 47 24 54 35 Q 61 24 68 35 Q 75 24 82 35" fill="none" stroke="#c8942a" stroke-width="1.5" stroke-linecap="round"/></svg>
+    Seb's Ultimate Beer Tester
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="28" height="28" style="flex-shrink:0;"><circle cx="60" cy="60" r="56" fill="#0f0e0b"/><circle cx="60" cy="60" r="55" fill="none" stroke="#c8942a" stroke-width="1"/><circle cx="60" cy="60" r="49" fill="none" stroke="rgba(200,148,42,0.22)" stroke-width="0.5"/><path d="M 45 92 L 38 35 L 82 35 L 75 92 Z" fill="rgba(200,148,42,0.07)" stroke="#c8942a" stroke-width="1.5" stroke-linejoin="round"/><path d="M 75 51 Q 94 51 94 63 Q 94 75 75 75" fill="none" stroke="#c8942a" stroke-width="1.5" stroke-linecap="round"/><path d="M 40 35 Q 47 24 54 35 Q 61 24 68 35 Q 75 24 82 35" fill="none" stroke="#c8942a" stroke-width="1.5" stroke-linecap="round"/></svg>
+  </h1>
   <div class="header-user" id="header-user">
     <span class="header-user-icon" id="header-user-icon"></span>
     <span class="header-user-name" id="header-user-name"></span>
