@@ -382,7 +382,30 @@
   }
   .voter-crit-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); display: block; margin-bottom: 3px; }
   .voter-crit-stars { font-size: 15px; letter-spacing: 1px; }
-  .voter-note { font-size: 12px; color: var(--muted); margin-top: 10px; font-style: italic; }
+  .voter-note {
+    font-size: 12px;
+    color: rgba(255,255,255,0.62);
+    margin-top: 10px;
+    font-style: italic;
+    padding: 7px 10px;
+    background: rgba(255,255,255,0.03);
+    border-left: 1.5px solid rgba(200,148,42,0.4);
+    border-radius: 0 6px 6px 0;
+    line-height: 1.5;
+  }
+  .cat-badge {
+    display: inline-block;
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--gold);
+    border: 0.5px solid rgba(200,148,42,0.45);
+    border-radius: 99px;
+    padding: 2px 7px;
+    margin-right: 4px;
+    margin-top: 5px;
+  }
+  .cat-badges-row { display: flex; flex-wrap: wrap; margin-top: 2px; }
 
   /* Share modal */
   .share-modal {
@@ -513,6 +536,36 @@
   .deco-bubbles span:nth-child(2) { width: 5px; height: 5px; animation-delay: 1.8s; animation-duration: 4.6s; }
   .deco-bubbles span:nth-child(3) { width: 4px; height: 4px; animation-delay: 3.4s; animation-duration: 5.8s; }
   #s-sessions { position: relative; }
+
+  /* Background bubble spread (profile screen) */
+  @keyframes bubbleFloatBg {
+    0%   { transform: translateY(0); opacity: 0; }
+    12%  { opacity: 0.55; }
+    88%  { opacity: 0.22; }
+    100% { transform: translateY(-160px); opacity: 0; }
+  }
+  .deco-bubbles-bg {
+    position: absolute;
+    bottom: 0; left: 0; right: 0; height: 100%;
+    pointer-events: none;
+    overflow: hidden;
+  }
+  .deco-bubbles-bg span {
+    position: absolute;
+    bottom: 16px;
+    border-radius: 50%;
+    border: 0.5px solid rgba(200,148,42,0.28);
+    animation: bubbleFloatBg 9s ease-in infinite;
+    opacity: 0;
+  }
+  .deco-bubbles-bg span:nth-child(1) { left:  7%; width: 5px; height: 5px; animation-delay: 0s;   animation-duration:  8.6s; }
+  .deco-bubbles-bg span:nth-child(2) { left: 21%; width: 4px; height: 4px; animation-delay: 2.3s; animation-duration: 10.2s; }
+  .deco-bubbles-bg span:nth-child(3) { left: 40%; width: 6px; height: 6px; animation-delay: 4.8s; animation-duration:  9.4s; }
+  .deco-bubbles-bg span:nth-child(4) { left: 58%; width: 3px; height: 3px; animation-delay: 1.5s; animation-duration: 11.3s; }
+  .deco-bubbles-bg span:nth-child(5) { left: 75%; width: 5px; height: 5px; animation-delay: 6.1s; animation-duration:  8.9s; }
+  .deco-bubbles-bg span:nth-child(6) { left: 88%; width: 4px; height: 4px; animation-delay: 3.5s; animation-duration:  9.7s; }
+  #s-profile { position: relative; min-height: 100vh; }
+  #s-rate    { position: relative; }
 </style>
 </head>
 <body>
@@ -539,6 +592,7 @@
       onkeydown="if(event.key==='Enter') saveProfile()" />
     <button class="btn" onclick="saveProfile()">Spara profil</button>
   </div>
+  <div class="deco-bubbles-bg" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span></div>
 </div>
 
 <!-- SESSIONSLISTA -->
@@ -602,7 +656,7 @@
           ↗ systembolaget.se
         </a>
       </div>
-      <img class="beer-thumb" id="beer-thumb" alt="" onerror="this.style.display='none'" />
+      <img class="beer-thumb" id="beer-thumb" alt="" referrerpolicy="no-referrer" crossorigin="anonymous" onerror="this.style.display='none'" />
     </div>
     <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
   </div>
@@ -629,6 +683,7 @@
       <button class="btn-sm" onclick="showScreen('s-results')">★ Ranking</button>
     </div>
   </div>
+  <div class="deco-bubbles" style="right:auto;left:16px;bottom:90px;" aria-hidden="true"><span></span><span></span><span></span></div>
 </div>
 
 <!-- RANKING -->
@@ -660,6 +715,7 @@
       <button onclick="closeBeerModal()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;line-height:1;padding:0;">×</button>
     </div>
     <span class="beer-style-badge" id="beer-modal-style" style="margin-bottom:16px;display:inline-block;"></span>
+    <div id="beer-modal-radar"></div>
     <div id="beer-modal-voters"></div>
   </div>
 </div>
@@ -895,7 +951,8 @@ function initBeerEditor() {
 
 function extractSbInfo(url) {
   try {
-    const slug = url.split("/").filter(Boolean).pop();
+    const clean = url.split("?")[0].split("#")[0];
+    const slug = clean.split("/").filter(Boolean).pop();
     const parts = slug.split("-");
     let articleNr = null;
     let nameParts = [...parts];
@@ -1101,6 +1158,34 @@ function closeShareModal() {
 
 // ---- BEER DETAIL ----
 const CRITERIA = ["Utseende", "Doft", "Smak", "Helhetsintryck"];
+const CRIT_BADGE = ["✦ Utseende", "✦ Doft", "✦ Smak", "✦ Helhet"];
+
+function drawRadar(scores) {
+  const cx = 100, cy = 100, r = 60, lo = r + 18;
+  const angles = [-Math.PI/2, 0, Math.PI/2, Math.PI];
+  const labels = ["UTSEENDE", "DOFT", "SMAK", "HELHET"];
+  const anchors = ["middle", "start", "middle", "end"];
+  const dys = ["-0.3em", "0.35em", "1em", "0.35em"];
+  let s = "";
+  [1,2,3,4,5].forEach(step => {
+    const pts = angles.map(a => `${(cx+r*step/5*Math.cos(a)).toFixed(1)},${(cy+r*step/5*Math.sin(a)).toFixed(1)}`).join(" ");
+    s += `<polygon points="${pts}" fill="none" stroke="rgba(255,255,255,${step===5?'0.1':'0.05'})" stroke-width="0.5"/>`;
+  });
+  angles.forEach(a => {
+    s += `<line x1="${cx}" y1="${cy}" x2="${(cx+r*Math.cos(a)).toFixed(1)}" y2="${(cy+r*Math.sin(a)).toFixed(1)}" stroke="rgba(255,255,255,0.07)" stroke-width="0.5"/>`;
+  });
+  const pts = angles.map((a,i) => { const f=(scores[i]||0)/5; return `${(cx+r*f*Math.cos(a)).toFixed(1)},${(cy+r*f*Math.sin(a)).toFixed(1)}`; }).join(" ");
+  s += `<polygon points="${pts}" style="fill:rgba(200,148,42,0.2);stroke:#c8942a;stroke-width:1.5;stroke-linejoin:round"/>`;
+  angles.forEach((a,i) => {
+    if (!scores[i]) return;
+    const f=scores[i]/5;
+    s += `<circle cx="${(cx+r*f*Math.cos(a)).toFixed(1)}" cy="${(cy+r*f*Math.sin(a)).toFixed(1)}" r="2.5" fill="#c8942a"/>`;
+  });
+  angles.forEach((a,i) => {
+    s += `<text x="${(cx+lo*Math.cos(a)).toFixed(1)}" y="${(cy+lo*Math.sin(a)).toFixed(1)}" dy="${dys[i]}" text-anchor="${anchors[i]}" font-size="8" fill="rgba(255,255,255,0.4)" font-family="DM Sans,sans-serif" letter-spacing="0.06em">${labels[i]}</text>`;
+  });
+  return `<svg viewBox="0 0 200 200" width="180" height="180" style="overflow:visible;display:block;margin:0 auto 4px;">${s}</svg>`;
+}
 
 function miniStars(val) {
   return Array.from({ length: 5 }, (_, i) =>
@@ -1127,6 +1212,19 @@ function showBeerDetail(bi) {
   const styleBadge = document.getElementById("beer-modal-style");
   styleBadge.textContent = beer.style || "";
   styleBadge.style.display = beer.style ? "inline-block" : "none";
+
+  const radarEl = document.getElementById("beer-modal-radar");
+  if (cards.length) {
+    const avgScores = CRITERIA.map((_, ci) => {
+      const vals = cards.map(c => c.scores[ci]).filter(v => v > 0);
+      return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
+    });
+    radarEl.innerHTML =
+      `<p style="font-size:10px;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);text-align:center;margin:0 0 6px;">Genomsnitt</p>` +
+      drawRadar(avgScores);
+  } else {
+    radarEl.innerHTML = "";
+  }
 
   document.getElementById("beer-modal-voters").innerHTML = cards.length
     ? cards.map(v => `
@@ -1248,18 +1346,36 @@ async function loadResults() {
       return { name: b.name, style: b.style, avg: count ? sum / count : 0, votes: count, bi };
     }).sort((a, b) => b.avg - a.avg);
 
+    // Per-criterion winners
+    const critAvgs = currentSession.beers.map((_, bi) =>
+      CRITERIA.map((_, ci) => {
+        let sum = 0, cnt = 0;
+        voters.forEach(v => { const sc = allData[v]?.scores?.[bi]?.scores?.[ci]; if (sc > 0) { sum += sc; cnt++; } });
+        return cnt ? sum / cnt : 0;
+      })
+    );
+    const badgesByBeer = {};
+    CRITERIA.forEach((_, ci) => {
+      let best = 0, bestBi = -1;
+      currentSession.beers.forEach((_, bi) => { if (critAvgs[bi][ci] > best) { best = critAvgs[bi][ci]; bestBi = bi; } });
+      if (bestBi >= 0) { badgesByBeer[bestBi] = badgesByBeer[bestBi] || []; badgesByBeer[bestBi].push(ci); }
+    });
+
     const maxAvg = totals[0]?.avg || 20;
-    listEl.innerHTML = totals.map((b, i) => `
+    listEl.innerHTML = totals.map((b, i) => {
+      const badges = (badgesByBeer[b.bi] || []).map(ci => `<span class="cat-badge">${CRIT_BADGE[ci]}</span>`).join("");
+      return `
       <div class="rank-row" onclick="showBeerDetail(${b.bi})">
         <span class="rank-num ${i === 0 ? "gold" : ""}">${i === 0 ? "★" : (i + 1)}</span>
         <div class="rank-info">
           <div class="rank-name">${escHtml(b.name)}</div>
           <div class="rank-sub">${escHtml(b.style)} · ${b.votes} röst${b.votes !== 1 ? "er" : ""}</div>
+          ${badges ? `<div class="cat-badges-row">${badges}</div>` : ""}
           <div class="rank-bar-wrap"><div class="rank-bar" style="width:${maxAvg > 0 ? Math.round(b.avg / maxAvg * 100) : 0}%"></div></div>
         </div>
         <span class="rank-score">${b.avg > 0 ? b.avg.toFixed(1) : "—"}</span>
-      </div>
-    `).join("");
+      </div>`;
+    }).join("");
 
     const vs = document.getElementById("voter-section");
     if (voters.length) {
