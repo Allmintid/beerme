@@ -337,7 +337,7 @@
     transition: transform 0.3s ease;
     pointer-events: none;
     white-space: nowrap;
-    z-index: 100;
+    z-index: 300;
   }
   .toast.show { transform: translateX(-50%) translateY(0); }
 
@@ -521,8 +521,8 @@
     <span class="status-text"><span class="dot"></span><span id="voter-count">0</span> deltagare</span>
     <div style="display:flex;gap:8px;">
       <button class="btn-sm" onclick="showScreen('s-sessions')">← Sessioner</button>
-      <button class="btn-sm" onclick="showShareModal()">Dela</button>
-      <button class="btn-sm" onclick="showScreen('s-results')">Ranking</button>
+      <button class="btn-sm" onclick="showShareModal()">↗ Dela</button>
+      <button class="btn-sm" onclick="showScreen('s-results')">★ Ranking</button>
     </div>
   </div>
 </div>
@@ -532,7 +532,7 @@
   <div class="results-header">
     <h2>Live-ranking</h2>
     <div style="display:flex;gap:8px;">
-      <button class="refresh-btn" onclick="showShareModal()">Dela</button>
+      <button class="refresh-btn" onclick="showShareModal()">↗ Dela</button>
       <button class="refresh-btn" onclick="loadResults()">&#8635; Uppdatera</button>
     </div>
   </div>
