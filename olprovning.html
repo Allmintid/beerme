@@ -672,6 +672,13 @@ function escHtml(s) {
     .replace(/"/g, "&quot;");
 }
 
+function isSafeUrl(url) {
+  try {
+    const u = new URL(url);
+    return u.protocol === "https:" && u.hostname.endsWith("systembolaget.se");
+  } catch(e) { return false; }
+}
+
 // ---- PROFIL ----
 function renderIconGrid() {
   selectedIcon = (user && user.icon) ? user.icon : ICONS[0];
@@ -875,7 +882,7 @@ async function createSession() {
   const code = document.getElementById("session-code-input").value.trim().toUpperCase();
   const beers = draftBeers.filter(b => b.name.trim()).map(b => {
     const beer = { name: b.name.trim(), style: b.style.trim() };
-    if (b.sbUrl && b.sbUrl.includes("systembolaget.se")) {
+    if (b.sbUrl && isSafeUrl(b.sbUrl)) {
       const info = extractSbInfo(b.sbUrl);
       beer.sbUrl = b.sbUrl;
       if (info && info.articleNr) beer.sbArticle = info.articleNr;
@@ -1094,7 +1101,7 @@ function renderBeer() {
   } else {
     thumb.style.display = "none";
   }
-  if (b.sbUrl) {
+  if (b.sbUrl && isSafeUrl(b.sbUrl)) {
     sbLink.href = b.sbUrl;
     sbLink.style.display = "inline-flex";
   } else {
