@@ -384,6 +384,9 @@
     <p>Ge sessionen ett namn och lägg till de ölar som ska provas.</p>
     <label>Provningens namn</label>
     <input type="text" id="session-name-input" placeholder="T.ex. Fredagsprovning" maxlength="40" />
+    <label>Välj en kod (bokstäver och siffror)</label>
+    <input type="text" id="session-code-input" placeholder="T.ex. FREDAG24" maxlength="20"
+      oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')" />
     <label>Ölar</label>
     <div id="beer-editor"></div>
     <button class="add-beer-btn" onclick="addBeerRow()">+ Lägg till öl</button>
@@ -460,6 +463,7 @@
 const API_KEY = "$2a$10$yUvjjPJ.Mt9.ijiVTl3FEuc10lkv197G.c01gJmnVFHFAQ9yVFoUq";
 const USER_KEY = "op_user";
 const SESSIONS_KEY = "op_sessions";
+const REGISTRY_KEY = "op_registry";
 
 const ICONS = ["🌙","⚡","🔥","🌊","🌿","⭐","💎","🦊","🐺","🌵","🏔️","🌸","🍄","🦋","🐉","🌲","🦅","🐻","🌺","🍺"];
 
@@ -472,16 +476,27 @@ let myScores = [];
 let allData = {};
 let pollTimer = null;
 let draftBeers = [{ name: "", style: "" }];
+let pendingCode = null;
+let lastShareUrl = "";
 
 function init() {
+  handleUrlParams();
   try { user = JSON.parse(localStorage.getItem(USER_KEY)); } catch(e) {}
   try { sessions = JSON.parse(localStorage.getItem(SESSIONS_KEY)) || []; } catch(e) { sessions = []; }
   if (!user || !user.name) {
     showScreen("s-profile");
   } else {
     updateHeaderUser();
-    showScreen("s-sessions");
+    if (pendingCode) { handlePendingCode(); } else { showScreen("s-sessions"); }
   }
+}
+
+function handleUrlParams() {
+  const params = new URLSearchParams(window.location.search);
+  const r = params.get("r");
+  const c = params.get("c");
+  if (r) localStorage.setItem(REGISTRY_KEY, r);
+  if (c) pendingCode = c.toUpperCase();
 }
 
 function showToast(msg) {
@@ -532,7 +547,7 @@ function saveProfile() {
   user = { name, icon: selectedIcon };
   localStorage.setItem(USER_KEY, JSON.stringify(user));
   updateHeaderUser();
-  showScreen("s-sessions");
+  if (pendingCode) { handlePendingCode(); } else { showScreen("s-sessions"); }
 }
 
 function updateHeaderUser() {
@@ -572,10 +587,76 @@ function deleteSession(e, i) {
   renderSessionsList();
 }
 
+// ---- REGISTRY ----
+async function getOrCreateRegistry() {
+  let regId = localStorage.getItem(REGISTRY_KEY);
+  if (regId) return regId;
+  const r = await fetch("https://api.jsonbin.io/v3/b", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Master-Key": API_KEY,
+      "X-Bin-Name": "op-registry",
+      "X-Bin-Private": "false"
+    },
+    body: JSON.stringify({})
+  });
+  const j = await r.json();
+  if (!r.ok) throw new Error(j.message || r.status);
+  localStorage.setItem(REGISTRY_KEY, j.metadata.id);
+  return j.metadata.id;
+}
+
+async function registerCode(code, binId) {
+  const regId = await getOrCreateRegistry();
+  const r = await fetch(`https://api.jsonbin.io/v3/b/${regId}/latest`, {
+    headers: { "X-Master-Key": API_KEY }
+  });
+  const current = r.ok ? (await r.json()).record : {};
+  if (current[code]) return false;
+  current[code] = binId;
+  await fetch(`https://api.jsonbin.io/v3/b/${regId}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json", "X-Master-Key": API_KEY },
+    body: JSON.stringify(current)
+  });
+  return true;
+}
+
+async function lookupCode(code) {
+  const regId = localStorage.getItem(REGISTRY_KEY);
+  if (!regId) return null;
+  const r = await fetch(`https://api.jsonbin.io/v3/b/${regId}/latest`, {
+    headers: { "X-Master-Key": API_KEY }
+  });
+  if (!r.ok) return null;
+  return (await r.json()).record[code] || null;
+}
+
+async function handlePendingCode() {
+  const code = pendingCode;
+  pendingCode = null;
+  const binId = await lookupCode(code);
+  if (!binId) { showToast(`Hittade ingen provning med koden ${code}`); showScreen("s-sessions"); return; }
+  try {
+    const r = await fetch(`https://api.jsonbin.io/v3/b/${binId}/latest`, { headers: { "X-Master-Key": API_KEY } });
+    if (!r.ok) { showScreen("s-sessions"); return; }
+    const meta = (await r.json()).record._meta;
+    if (!meta || !meta.beers) { showScreen("s-sessions"); return; }
+    const session = { id: binId, name: meta.name, binId, beers: meta.beers, code: meta.code, createdAt: meta.createdAt };
+    const idx = sessions.findIndex(s => s.id === binId);
+    if (idx >= 0) { sessions[idx] = session; } else { sessions.unshift(session); }
+    localStorage.setItem(SESSIONS_KEY, JSON.stringify(sessions));
+    showToast(`Ansluter till ${meta.name}…`);
+    enterSessionByObj(session);
+  } catch(e) { showScreen("s-sessions"); }
+}
+
 // ---- SKAPA SESSION ----
 function initBeerEditor() {
   draftBeers = [{ name: "", style: "" }];
   document.getElementById("session-name-input").value = "";
+  document.getElementById("session-code-input").value = "";
   renderBeerEditor();
 }
 
@@ -605,15 +686,17 @@ function removeBeerRow(i) {
 
 async function createSession() {
   const sessionName = document.getElementById("session-name-input").value.trim();
+  const code = document.getElementById("session-code-input").value.trim().toUpperCase();
   const beers = draftBeers.filter(b => b.name.trim()).map(b => ({
     name: b.name.trim(),
     style: b.style.trim()
   }));
   if (!sessionName) { showToast("Ange ett namn för provningen"); return; }
+  if (code.length < 3) { showToast("Koden måste vara minst 3 tecken"); return; }
   if (!beers.length) { showToast("Lägg till minst en öl"); return; }
 
   try {
-    const data = { _meta: { name: sessionName, beers, createdAt: Date.now(), createdBy: user.name } };
+    const data = { _meta: { name: sessionName, beers, code, createdAt: Date.now(), createdBy: user.name } };
     const r = await fetch("https://api.jsonbin.io/v3/b", {
       method: "POST",
       headers: {
@@ -627,7 +710,14 @@ async function createSession() {
     const j = await r.json();
     if (!r.ok) throw new Error(j.message || r.status);
 
-    const session = { id: j.metadata.id, name: sessionName, binId: j.metadata.id, beers, createdAt: Date.now() };
+    const ok = await registerCode(code, j.metadata.id);
+    if (!ok) { showToast(`Koden "${code}" är redan tagen — välj en annan`); return; }
+
+    const regId = localStorage.getItem(REGISTRY_KEY);
+    const base = window.location.href.split("?")[0];
+    lastShareUrl = `${base}?r=${regId}&c=${code}`;
+
+    const session = { id: j.metadata.id, name: sessionName, binId: j.metadata.id, beers, code, createdAt: Date.now() };
     sessions.unshift(session);
     localStorage.setItem(SESSIONS_KEY, JSON.stringify(sessions));
     showShareCode(session);
@@ -639,37 +729,54 @@ async function createSession() {
 function showShareCode(session) {
   document.querySelector("#s-create .card").innerHTML = `
     <h2>Provning skapad!</h2>
-    <p>Dela koden nedan med ditt sällskap så de kan gå med.</p>
-    <div class="code-label" style="margin-top:20px;">Sessionskod — tryck för att kopiera</div>
-    <div class="code-box" onclick="copyCode('${escHtml(session.id)}')">
-      <div class="code-value">${escHtml(session.id)}</div>
+    <p>Dela koden eller länken med ditt sällskap.</p>
+    <div class="code-label" style="margin-top:20px;">Sessionskod</div>
+    <div class="code-box" onclick="copyText('${escHtml(session.code)}', 'Kod kopierad!')">
+      <div class="code-value" style="font-size:26px;letter-spacing:0.15em;">${escHtml(session.code)}</div>
     </div>
+    <button class="btn-ghost" onclick="copyText(lastShareUrl, 'Länk kopierad!')" style="margin-bottom:10px;">
+      Kopiera länk
+    </button>
     <button class="btn" onclick="enterSession(0)" style="margin-bottom:10px;">Starta provningen ›</button>
     <button class="btn-ghost" onclick="showScreen('s-sessions')">Tillbaka till listan</button>
   `;
 }
 
-function copyCode(code) {
-  navigator.clipboard.writeText(code)
-    .then(() => showToast("Kod kopierad!"))
-    .catch(() => showToast("Kopiera koden manuellt"));
+function copyText(text, msg) {
+  navigator.clipboard.writeText(text)
+    .then(() => showToast(msg))
+    .catch(() => showToast("Kopiera manuellt: " + text));
 }
 
-// ---- GÅ MED MED KOD ----
+// ---- ANSLUT MED KOD ----
 async function joinWithCode() {
-  const code = document.getElementById("join-code-input").value.trim();
-  if (!code) { showToast("Ange en kod"); return; }
+  let raw = document.getElementById("join-code-input").value.trim();
+  if (!raw) { showToast("Ange en kod"); return; }
+
+  // Extract params if a URL was pasted
+  if (raw.includes("?")) {
+    try {
+      const params = new URLSearchParams(raw.includes("http") ? new URL(raw).search : raw.slice(raw.indexOf("?")));
+      const r = params.get("r"), c = params.get("c");
+      if (r) localStorage.setItem(REGISTRY_KEY, r);
+      if (c) raw = c;
+    } catch(e) {}
+  }
+
+  const code = raw.toUpperCase();
   try {
-    const r = await fetch(`https://api.jsonbin.io/v3/b/${code}/latest`, {
+    const binId = await lookupCode(code);
+    if (!binId) { showToast(`Hittade ingen provning med koden ${code}`); return; }
+
+    const r = await fetch(`https://api.jsonbin.io/v3/b/${binId}/latest`, {
       headers: { "X-Master-Key": API_KEY }
     });
     if (!r.ok) { showToast("Hittade ingen provning med den koden"); return; }
-    const j = await r.json();
-    const meta = j.record._meta;
+    const meta = (await r.json()).record._meta;
     if (!meta || !meta.beers) { showToast("Ogiltig sessionskod"); return; }
 
-    const session = { id: code, name: meta.name, binId: code, beers: meta.beers, createdAt: meta.createdAt };
-    const existing = sessions.findIndex(s => s.id === code);
+    const session = { id: binId, name: meta.name, binId, beers: meta.beers, code: meta.code, createdAt: meta.createdAt };
+    const existing = sessions.findIndex(s => s.id === binId);
     if (existing >= 0) { sessions[existing] = session; } else { sessions.unshift(session); }
     localStorage.setItem(SESSIONS_KEY, JSON.stringify(sessions));
     enterSessionByObj(session);
